@@ -39,8 +39,14 @@ class Bandit:
 
         return self.fix_pos(self.pos), reward, done
 
-   
-
+    def get_action(self, pos, Q, epsilon):
+        if random.random() < epsilon:
+            action = random.randint(0,3)
+        else:
+            action = np.argmax(Q[pos])
+        return action
+    
+    
     def learn(self, eps):
         Q = np.zeros((25,4))
         alpha = 0.1
@@ -49,21 +55,27 @@ class Bandit:
         for i in range(0, eps):
             self.reset()
             done = False
+
+            previous = self.fix_pos(self.pos)
+            action = self.get_action(previous, Q, epsilon)
+
             while not done:
-                previous = self.fix_pos(self.pos)
-                if random.random() < epsilon:
-                    action = random.randint(0,3)
-                else:
-                    action = np.argmax(Q[previous])
                 pos, reward, done = self.step(action)
-                max_a = np.argmax(Q[pos])
-                td_target = reward + gamma * Q[pos][max_a]
+                next_action = self.get_action(pos, Q, epsilon)
+                if done:
+                    td_target = reward
+                else:
+                    td_target = reward + gamma * Q[pos][next_action]
                 Q[previous][action] +=  alpha * (td_target - Q[previous][action])
+
+                previous = pos
+                action = next_action
+
             epsilon = max(0.05, epsilon * 0.9995)
         return Q
 
 test = Bandit()
-Q = test.learn(100000)
+Q = test.learn(1000000)
 policy = np.zeros((25,))
 for s in range(25):
     policy[s] = np.argmax(Q[s])
