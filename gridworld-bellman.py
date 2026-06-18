@@ -39,46 +39,35 @@ class Bandit:
 
         return self.fix_pos(self.pos), reward, done
 
-    def get_action(self, pos, Q, epsilon):
-        if random.random() < epsilon:
-            action = random.randint(0,3)
-        else:
-            action = np.argmax(Q[pos])
-        return action
+
     
     
     def learn(self, eps):
-        Q = np.zeros((25,4))
-        alpha = 0.1
+        V = np.zeros(25)
         gamma = 0.9
-        epsilon = 0.05
         for i in range(0, eps):
             self.reset()
             done = False
+            V_new = np.zeros(25)
 
-            previous = self.fix_pos(self.pos)
-            action = self.get_action(previous, Q, epsilon)
-
-            while not done:
-                pos, reward, done = self.step(action)
-                next_action = self.get_action(pos, Q, epsilon)
-                if done:
-                    td_target = reward
-                else:
-                    td_target = reward + gamma * Q[pos][next_action]
-                Q[previous][action] +=  alpha * (td_target - Q[previous][action])
-
-                previous = pos
-                action = next_action
-
-            epsilon = max(0.05, epsilon * 0.9995)
-        return Q
+            for s in range(25):
+                row = s // 5
+                col = s % 5
+                if (row == 4 and col == 4) or self.grid[row, col] == 'X':
+                    continue
+                    
+                actions = []
+                for action in [0, 1, 2, 3]:
+                    self.pos = np.array([s // 5, s % 5])
+                    next_pos, reward, done = self.step(action)
+                    value = reward + gamma * V[next_pos]
+                    actions.append(value)
+                V_new[s] = max(actions)
+            V = V_new.copy()
+        return V
 
 test = Bandit()
-Q = test.learn(1000)
-policy = np.zeros((25,))
-for s in range(25):
-    policy[s] = np.argmax(Q[s])
-policy.resize(5,5)
-print(policy)
+V = test.learn(100)
+V.resize(5,5)
+print(V)
 
